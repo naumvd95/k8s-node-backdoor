@@ -63,7 +63,12 @@ image-push:
 	docker push $(REGISTRY)/k8s-node-backdoor:$(APP_VERSION)
 
 # codelint
-lint:
+linter:
+	if ! golangci-lint; then \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.24.0
+	fi
+
+lint: linter
 	if golangci-lint run -v ./...; then \
 	  :; \
 	else \
