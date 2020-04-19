@@ -21,7 +21,7 @@ ifndef HAS_DEP
 endif
 	dep ensure $(DEPFLAGS)
 
-depend-update: work check-git-config
+depend-update:
 	dep ensure -update $(DEPFLAGS)
 
 #versioning
