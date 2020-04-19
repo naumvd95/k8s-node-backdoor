@@ -1,0 +1,41 @@
+name: Test docker image with go binary
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go 
+         
+    - name: Setup docker
+      uses: docker-practice/actions-setup-docker@0.0.1
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: make depend
+
+    - name: Lint
+      run: make lint
+          
+    - name: Build binary and pack inside docker image
+      run: make nodebackdoor-image
+    
+    - name: Get image name
+      run: make nodebackdoor-image-name
+      id: release_candidate_image
+      
+    - name: Test docker image
+      run: docker run --rm ${{steps.release_candidate_image.outputs}} --help
+  
