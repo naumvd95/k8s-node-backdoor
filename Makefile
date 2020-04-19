@@ -45,7 +45,7 @@ image-context-dir:
 REGISTRY:= vnaumov
 SSH_PUBKEY_FILEPATH:= ~/.ssh/id_rsa.pub
 nodebackdoor-image-name:
-	@echo k8s-node-backdoor
+	@echo $(REGISTRY)/k8s-node-backdoor:$(APP_VERSION)
 nodebackdoor-image: nodebackdoor image-context-dir
 ifeq ($(GOOS),linux)
 	cp $(SSH_PUBKEY_FILEPATH) image-context/id_rsa.pub 
