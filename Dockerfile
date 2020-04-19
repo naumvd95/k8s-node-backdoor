@@ -1,14 +1,10 @@
-#FROM alpine:3.11.5
-# TODO get rid of ubuntu
-FROM ubuntu
+FROM alpine:3.11.5
 
 # Forward volumes with authorized_keys from node 
-# Managed in etrypoint.sh
-ENV AUTHORIZED_KEYS_PATH /ssh-input/authorized_keys
+ENV PUBLIC_KEY_PATH /ssh-input/id_rsa.pub
 
 ADD nodebackdoor /bin/nodebackdoor
-ADD id_rsa.pub /ssh-input/id_rsa.pub
-ADD entrypoint.sh /bin/entrypoint.sh
+ADD id_rsa.pub ${PUBLIC_KEY_PATH}
 
-ENTRYPOINT  ["/bin/entrypoint.sh"]
-CMD ["--public-key /ssh-input/id_rsa.pub"]
+ENTRYPOINT  ["nodebackdoor"]
+CMD  ["daemon", "--forward-ssh", "--collect-logs"]

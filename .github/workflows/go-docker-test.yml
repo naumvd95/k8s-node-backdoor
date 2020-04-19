@@ -11,28 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-      id: go 
-
-    - name: Setup docker
-      uses: docker-practice/actions-setup-docker@0.0.1
-
-    - name: Check out code into the Go module directory
+    - name: Check out code
       uses: actions/checkout@v2
 
     - name: Lint
-      run: make lint
+      run: make dockerized-lint
           
     - name: Build binary and pack inside docker image
-      run: make nodebackdoor-image
+      run: |
+        docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $(pwd):/go/src/github.com/naumvd95/k8s-node-backdoor \
+        -w=/go/src/github.com/naumvd95/k8s-node-backdoor \
+        vnaumov/go-infra-ops:latest make nodebackdoor-image
     
     - name: Get image name
-      run: make nodebackdoor-image-name
-      id: release_candidate_image
+      run: echo "::set-output name=docker_image::$(make nodebackdoor-image-name)"
+      id: release_candidate
       
-    - name: Test docker image
-      run: docker run --rm ${{steps.release_candidate_image.outputs}} --help
-  
+    - name: Smoke test
+      run: docker run --rm ${{steps.release_candidate.outputs.docker_image}} daemon --help

@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	nodebackdoor "github.com/k8s-node-backdoor/cmd/nodebackdoor"
+	nodebackdoor "github.com/naumvd95/k8s-node-backdoor/cmd/nodebackdoor"
 )
 
 func main() {

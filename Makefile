@@ -1,8 +1,10 @@
 GIT_HOST = github.com
+PWD := $(shell pwd)
 GOPATH_DEFAULT := $(shell go env GOPATH)
 export GOPATH ?= $(GOPATH_DEFAULT)
 GOBIN_DEFAULT := $(GOPATH)/bin
 export GOBIN ?= $(GOBIN_DEFAULT)
+PATH := $(PATH):$(PWD)/bin:$(GOBIN)
 VERBOSE :=
 ifndef VERBOSE
 GOFLAGS   :=
@@ -13,9 +15,14 @@ DEPFLAGS  := "-v"
 endif
 GOOS ?= $(shell go env GOOS)
 
+$(GOBIN):
+	echo "create gobin"
+	mkdir -p $(GOBIN)
+work: $(GOBIN)
+
 #go tools
 HAS_DEP := $(shell command -v dep;)
-depend:
+depend: work
 ifndef HAS_DEP
 	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 endif
@@ -27,8 +34,8 @@ depend-update:
 #versioning
 GIT_COMMIT=$(shell git rev-parse HEAD)
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-APP_VERSION=$(shell git describe --tags --first-parent)
-LDFLAGS   = "-w -s -X 'github.com/k8s-node-backdoor/pkg/version.appVersion=${APP_VERSION}'-X 'github.com/k8s-node-backdoor/pkg/version.gitCommit=${GIT_COMMIT}' -X 'github.com/k8s-node-backdoor/pkg/version.buildDate=${BUILD_DATE}'"
+APP_VERSION=$(shell git rev-parse --short=7 HEAD)
+LDFLAGS   = "-w -s -X 'github.com/naumvd95/k8s-node-backdoor/pkg/version.appVersion=${APP_VERSION}'-X 'github.com/naumvd95/k8s-node-backdoor/pkg/version.gitCommit=${GIT_COMMIT}' -X 'github.com/naumvd95/k8s-node-backdoor/pkg/version.buildDate=${BUILD_DATE}'"
  
 
 
@@ -40,17 +47,18 @@ nodebackdoor:
 		cmd/main.go
 
 # images
-image-context-dir:
-	mkdir -p image-context
 REGISTRY:= vnaumov
-SSH_PUBKEY_FILEPATH:= ~/.ssh/id_rsa.pub
+SSH_PUBKEY_FILEPATH:= hack/ssh/admin_backdoor.pub
 nodebackdoor-image-name:
 	@echo $(REGISTRY)/k8s-node-backdoor:$(APP_VERSION)
-nodebackdoor-image: nodebackdoor image-context-dir
+nodebackdoor-image: nodebackdoor
 ifeq ($(GOOS),linux)
-	cp $(SSH_PUBKEY_FILEPATH) image-context/id_rsa.pub 
-	cp bin/nodebackdoor entrypoint.sh image-context
-	docker build -t $(REGISTRY)/k8s-node-backdoor:$(APP_VERSION) -f Dockerfile image-context
+	TMPDIR="$$(mktemp -d)"; \
+	cleanup () { rm -rf "$${TMPDIR}"; }; \
+	trap cleanup EXIT; \
+	cp $(SSH_PUBKEY_FILEPATH) "$${TMPDIR}/id_rsa.pub"; \
+	cp bin/nodebackdoor "$${TMPDIR}"; \
+	docker build -t $(REGISTRY)/k8s-node-backdoor:$(APP_VERSION) -f Dockerfile "$${TMPDIR}"
 else
 	$(error Please set GOOS=linux for building the image)
 endif
@@ -62,13 +70,21 @@ image-push:
 	docker login -u="$(DOCKER_USERNAME)" -p="$(DOCKER_PASSWORD)"
 	docker push $(REGISTRY)/k8s-node-backdoor:$(APP_VERSION)
 
-# codelint
-linter:
-	if ! golangci-lint; then \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.24.0
-	fi
+# infra image ops
+# TODO manage at least 2 tags stable/latest
+INFRA_IMAGE:= $(REGISTRY)/go-infra-ops:latest
+infra-image:
+	docker build -t $(INFRA_IMAGE) -f hack/Dockerfile .
 
-lint: linter
+# linters
+dockerized-lint:
+	docker run --rm \
+	-v $(PWD):/go/src/github.com/naumvd95/k8s-node-backdoor \
+	-w=/go/src/github.com/naumvd95/k8s-node-backdoor \
+	$(INFRA_IMAGE) make VERBOSE=1 lint
+
+# local linter
+lint:
 	if golangci-lint run -v ./...; then \
 	  :; \
 	else \

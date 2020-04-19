@@ -34,32 +34,6 @@
   version = "v1.0.5"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c976483228fe366a9a612e2f60287bfcdf8e64084bcfc3ec7cbcb8e5a82ebabc"
-  name = "golang.org/x/crypto"
-  packages = [
-    "blowfish",
-    "chacha20",
-    "curve25519",
-    "ed25519",
-    "ed25519/internal/edwards25519",
-    "internal/subtle",
-    "poly1305",
-    "ssh",
-    "ssh/internal/bcrypt_pbkdf",
-  ]
-  pruneopts = "UT"
-  revision = "056763e48d71961566155f089ac0f02f1dda9b5a"
-
-[[projects]]
-  branch = "master"
-  digest = "1:0110babbeb34e338aca6f831fcd8c4eb32a5e5844ca1b8d25a95a56308028e53"
-  name = "golang.org/x/sys"
-  packages = ["cpu"]
-  pruneopts = "UT"
-  revision = "59c9f1ba88faf592b225274f69c5ef1e4ebacf82"
-
-[[projects]]
   digest = "1:70e8ed1415f9339af476d4eb0203e7eb33e56eaf058b22249a81db02e5ec16b1"
   name = "k8s.io/klog"
   packages = ["."]
@@ -72,7 +46,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/spf13/cobra",
-    "golang.org/x/crypto/ssh",
     "k8s.io/klog",
   ]
   solver-name = "gps-cdcl"
