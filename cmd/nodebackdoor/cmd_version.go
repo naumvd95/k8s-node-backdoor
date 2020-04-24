@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
-	"github.com/k8s-node-backdoor/pkg/version"
+	"github.com/naumvd95/k8s-node-backdoor/pkg/version"
 )
 
 var versionCmd = &cobra.Command{
