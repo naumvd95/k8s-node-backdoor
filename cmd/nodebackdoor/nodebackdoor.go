@@ -52,7 +52,7 @@ func Execute() {
 var daemonCmd = &cobra.Command{
 	Use:   "daemon",
 	Short: "Run all backdoor operations in daemon mode",
-	Long:  `Run all backdoor operations in daemon mode, arguments managed by ENV variables`,
+	Long:  `Run all backdoor operations in daemon mode, cmd arguments managed through ENV variables`,
 	Run: func(cmd *cobra.Command, args []string) {
 		scenario, err := validateEnv(dso)
 		if err != nil {
