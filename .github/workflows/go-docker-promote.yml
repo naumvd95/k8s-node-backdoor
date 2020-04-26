@@ -1,0 +1,42 @@
+name: Promote k8s-node-backdoor docker image
+
+on:
+  pull_request:
+    types: [ closed ]
+    branches: master
+  pull_request_review_comment:
+    types: created
+
+jobs:
+
+  build:
+    name: Promote
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Build binary and pack inside docker image
+      run: |
+        docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $(pwd):/go/src/github.com/naumvd95/k8s-node-backdoor \
+        -w=/go/src/github.com/naumvd95/k8s-node-backdoor \
+        -e APP_VERSION=latest \
+        vnaumov/go-infra-ops:latest make nodebackdoor-image
+    
+    - name: Get image name
+      run: echo "::set-output name=docker_image::$(make APP_VERSION=latest nodebackdoor-image-name)"
+      id: release_candidate
+      
+    - name: Smoke test
+      run: docker run --rm ${{steps.release_candidate.outputs.docker_image}} daemon --help
+
+    - name: Push image
+      run: |
+          make \
+          DOCKER_USERNAME=${{ secrets.dockerhub_username }} \
+          DOCKER_PASSWORD=${{ secrets.dockerhub_password }}\
+          APP_VERSION=latest \
+          image-push
