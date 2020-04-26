@@ -4,8 +4,6 @@ on:
   pull_request:
     types: [ closed ]
     branches: master
-  pull_request_review_comment:
-    types: created
 
 jobs:
 
@@ -23,8 +21,7 @@ jobs:
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v $(pwd):/go/src/github.com/naumvd95/k8s-node-backdoor \
         -w=/go/src/github.com/naumvd95/k8s-node-backdoor \
-        -e APP_VERSION=latest \
-        vnaumov/go-infra-ops:latest make nodebackdoor-image
+        vnaumov/go-infra-ops:latest make APP_VERSION=latest nodebackdoor-image
     
     - name: Get image name
       run: echo "::set-output name=docker_image::$(make APP_VERSION=latest nodebackdoor-image-name)"
