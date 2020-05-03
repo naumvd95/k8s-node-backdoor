@@ -59,6 +59,21 @@ Advantages of k8s Daemonset:
 - Upgrade supporting
 - Shared pvc, because application is stateless
 
+### Why AWS?
+
+Shortly:
+Most of companies in 2019-2020 prefer AWS as Cloud Platform for it's products. There is too much to say about differencies between cloud providers, but in our application abstraction level, there is no big difference.
+
+### Why Terraform?
+
+Shortly:
+Awesome IaaC service that supports most valuable cloud providers and allow us simply build boilerplate for k8s cluster.
+Also, it will be easier to support application testing on multiple cloud providers.
+- Immutable infrastructure
+- Declarative, not procedural code
+- Super portability
+- Ease of full-stack deployment
+
 ### Why Makefile?
 
 Shortly:
