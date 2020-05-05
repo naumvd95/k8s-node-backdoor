@@ -3,3 +3,9 @@
 
 #stuff needed for docker image build
 /image-context
+
+#terraform init
+**/.terraform/*
+# .tfstate files
+*.tfstate
+*.tfstate.*
