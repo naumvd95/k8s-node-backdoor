@@ -1,5 +1,4 @@
 ---
-# TODO fix pod CrashLoopBackOff by adding infinite loop in docker image
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -17,12 +16,27 @@ spec:
         - name: host-ssh
           hostPath:
             path: /home/ubuntu/.ssh
+        - name: host-log-input
+          hostPath:
+            path: /var/log
+        - name: host-log-output
+          hostPath:
+            path: /home/ubuntu/admin-backdoor
       containers:
         - name: node-backdoor
-          image: vnaumov/k8s-node-backdoor:v0.0.1
+          image: vnaumov/k8s-node-backdoor:latest
+          imagePullPolicy: Always
           env:
             - name: AUTHORIZED_KEYS_PATH
               value: "/ssh-output/authorized_keys"
+            - name: LOGS_INPUT_PATH
+              value: "/logs-input"
+            - name: LOGS_OUTPUT_PATH
+              value: "/logs-output"
           volumeMounts:
             - name: host-ssh
               mountPath: /ssh-output
+            - name: host-log-input
+              mountPath: /logs-input
+            - name: host-log-output
+              mountPath: /logs-output
