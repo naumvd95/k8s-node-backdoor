@@ -7,7 +7,6 @@ variable "vpc_subnet_cidr" {}
 
 variable "k8s_cluster_owner" {}
 variable "k8s_cluster_name" {}
-variable "ssh_public_key_path" {}
 variable "ssh_key_name" {}
 
 variable "k8s_master_instance_type" {}

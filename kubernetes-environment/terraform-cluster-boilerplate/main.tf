@@ -297,6 +297,13 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     cidr_blocks = [var.vpc_cidr]
     description = "NodePort Services"
   }
+  ingress {
+    from_port   = 179
+    to_port     = 179
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "Calico BGP"
+  }
 
   egress {
     from_port   = 0
@@ -321,9 +328,14 @@ data "template_cloudinit_config" "vn-k8s-cloudinit" {
   }
 }
 
+resource "tls_private_key" "vn-k8s-backdoor-ssh" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
 resource "aws_key_pair" "vn-k8s-backdoor-key-pair" {
   key_name   = var.ssh_key_name
-  public_key = file(var.ssh_public_key_path)
+  public_key = tls_private_key.vn-k8s-backdoor-ssh.public_key_openssh
 
   tags = local.common_tags
 }
@@ -371,8 +383,20 @@ output "instance_ips" {
   value = [aws_instance.vn-k8s-backdoor-worker[*].public_ip, aws_instance.vn-k8s-backdoor-master.public_ip]
 }
 
+resource "local_file" "vn-k8s-backdoor-ssh-priv-file" {
+  filename        = "tf-ssh"
+  file_permission = "0600"
+  content         = tls_private_key.vn-k8s-backdoor-ssh.private_key_pem
+}
+
+resource "local_file" "vn-k8s-backdoor-ssh-pub-file" {
+  filename        = "tf-ssh.pub"
+  file_permission = "0600"
+  content         = tls_private_key.vn-k8s-backdoor-ssh.public_key_openssh
+}
+
 resource "local_file" "ansible-inventory" {
-  filename = "ansible-hosts"
+  filename = "ansible-hosts.ini"
   content  = <<EOT
 [k8s-boilerplate-masters]
 ${aws_instance.vn-k8s-backdoor-master.public_ip}
@@ -380,5 +404,13 @@ ${aws_instance.vn-k8s-backdoor-master.public_ip}
 %{for ip in aws_instance.vn-k8s-backdoor-worker[*].public_ip~}
 ${ip}
 %{endfor~}
+[k8s-cluster:children]
+k8s-boilerplate-masters
+k8s-boilerplate-workers
+[k8s-cluster:vars]
+cluster_name                 = ${var.k8s_cluster_name}
+ansible_ssh_private_key_file = ${abspath("${path.module}/tf-ssh")}
+ansible_user                 = ubuntu
+ansible_ssh_common_args      = '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
 EOT
 }

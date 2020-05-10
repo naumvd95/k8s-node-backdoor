@@ -1,0 +1,56 @@
+---
+
+- name: Add Kubernetes APT GPG key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Add Kubernetes APT repository
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    filename: 'kubernetes'
+
+- name: Install kubernetes packages (Debian/Ubuntu)
+  apt:
+    name: ["kubelet", "kubeadm", "kubectl"]
+    update_cache: yes
+    state: present
+  with_items: ["kubelet", "kubeadm", "kubectl"]
+
+- name: Disable system swap
+  shell: "swapoff -a"
+
+- name: Remove current swaps from fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '(?i)^([^#][\S]+\s+(none|swap)\s+swap.*)'
+    line: '# \1'
+    backrefs: yes
+    state: present
+
+- name: Load netfilter kernel module for net bridge operations
+  become: yes
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Disable swappiness and pass bridged IPv4 traffic to iptable's chains
+  become: yes
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_set: yes
+    reload: yes
+  with_items:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'vm.swappiness', value: '0' }
+
+- name: restart kubelet
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    state: started
+    enabled: yes
+  register: started_kubelet
