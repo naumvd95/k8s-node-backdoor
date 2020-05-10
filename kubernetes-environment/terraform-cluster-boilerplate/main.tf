@@ -3,6 +3,14 @@ provider "aws" {
   profile = var.aws_profile
 }
 
+# Hack for dynamic variable interpolation for tags
+locals {
+  common_tags = "${map(
+    "kubernetes.io/cluster/${var.k8s_cluster_name}", "owned",
+    "Operator", var.k8s_cluster_owner
+  )}"
+}
+
 
 #--------- IAM -----------
 
@@ -127,9 +135,7 @@ resource "aws_iam_role" "vn-k8s-backdoor-iam-master-role" {
 }
 EOF
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 # K8s worker role
@@ -151,9 +157,7 @@ resource "aws_iam_role" "vn-k8s-backdoor-iam-worker-role" {
 }
 EOF
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 resource "aws_iam_instance_profile" "vn-k8s-backdoor-iam-master-profile" {
@@ -173,17 +177,13 @@ resource "aws_vpc" "vn-k8s-backdoor-vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 resource "aws_internet_gateway" "vn-k8s-backdoor-ig" {
   vpc_id = aws_vpc.vn-k8s-backdoor-vpc.id
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 resource "aws_route_table" "vn-k8s-backdoor-rt" {
@@ -194,9 +194,7 @@ resource "aws_route_table" "vn-k8s-backdoor-rt" {
     gateway_id = aws_internet_gateway.vn-k8s-backdoor-ig.id
   }
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 resource "aws_subnet" "vn-k8s-backdoor-subnet" {
@@ -206,9 +204,7 @@ resource "aws_subnet" "vn-k8s-backdoor-subnet" {
   availability_zone       = data.aws_availability_zones.available.names[0]
 
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 resource "aws_route_table_association" "vn-k8s-backdoor-rta" {
@@ -229,9 +225,7 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-ssh" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
@@ -276,6 +270,13 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     description = "k8s kubelet api"
   }
   ingress {
+    from_port   = 10248
+    to_port     = 10248
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "k8s kubelet healtz"
+  }
+  ingress {
     from_port   = 10252
     to_port     = 10252
     protocol    = "tcp"
@@ -289,6 +290,13 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     cidr_blocks = [var.vpc_cidr]
     description = "k8s scheduler"
   }
+  ingress {
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description = "NodePort Services"
+  }
 
   egress {
     from_port   = 0
@@ -297,54 +305,66 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 
 #--------- EC2 -----------
+data "template_file" "hostname_override" {
+  template = file("${path.module}/scripts/hostname-init.sh.tpl")
+}
+
+data "template_cloudinit_config" "vn-k8s-cloudinit" {
+  part {
+    content_type = "text/x-shellscript"
+    content      = data.template_file.hostname_override.rendered
+  }
+}
 
 resource "aws_key_pair" "vn-k8s-backdoor-key-pair" {
   key_name   = var.ssh_key_name
   public_key = file(var.ssh_public_key_path)
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-  }
+  tags = local.common_tags
 }
 
 # Master node
 resource "aws_instance" "vn-k8s-backdoor-master" {
-  instance_type = var.k8s_master_instance_type
-  ami           = var.k8s_master_ami
+  instance_type    = var.k8s_master_instance_type
+  ami              = var.k8s_master_ami
+  user_data_base64 = data.template_cloudinit_config.vn-k8s-cloudinit.rendered
 
   key_name               = aws_key_pair.vn-k8s-backdoor-key-pair.id
   vpc_security_group_ids = [aws_security_group.vn-k8s-backdoor-sg-ssh.id, aws_security_group.vn-k8s-backdoor-sg-common.id]
   iam_instance_profile   = aws_iam_instance_profile.vn-k8s-backdoor-iam-master-profile.id
   subnet_id              = aws_subnet.vn-k8s-backdoor-subnet.id
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-    Name  = "vn-k8s-backdoor-master-0"
-  }
+  tags = merge(
+    local.common_tags,
+    map(
+      "Name", "vn-k8s-backdoor-master-0"
+    )
+  )
 }
 
 # Worker nodes
 resource "aws_instance" "vn-k8s-backdoor-worker" {
-  instance_type = var.k8s_worker_instance_type
-  ami           = var.k8s_worker_ami
-  count         = 2
+  instance_type    = var.k8s_worker_instance_type
+  ami              = var.k8s_worker_ami
+  user_data_base64 = data.template_cloudinit_config.vn-k8s-cloudinit.rendered
+  count            = 2
 
   key_name               = aws_key_pair.vn-k8s-backdoor-key-pair.id
   vpc_security_group_ids = [aws_security_group.vn-k8s-backdoor-sg-ssh.id, aws_security_group.vn-k8s-backdoor-sg-common.id]
   iam_instance_profile   = aws_iam_instance_profile.vn-k8s-backdoor-iam-worker-profile.id
   subnet_id              = aws_subnet.vn-k8s-backdoor-subnet.id
 
-  tags = {
-    Owner = var.k8s_cluster_owner
-    Name  = "vn-k8s-backdoor-worker-${count.index}"
-  }
+  tags = merge(
+    local.common_tags,
+    map(
+      "Name", "vn-k8s-backdoor-worker-${count.index}"
+    )
+  )
 }
 
 output "instance_ips" {
@@ -354,8 +374,9 @@ output "instance_ips" {
 resource "local_file" "ansible-inventory" {
   filename = "ansible-hosts"
   content  = <<EOT
-[k8s-boilerplate]
+[k8s-boilerplate-masters]
 ${aws_instance.vn-k8s-backdoor-master.public_ip}
+[k8s-boilerplate-workers]
 %{for ip in aws_instance.vn-k8s-backdoor-worker[*].public_ip~}
 ${ip}
 %{endfor~}
