@@ -74,6 +74,13 @@ Also, it will be easier to support application testing on multiple cloud provide
 - Super portability
 - Ease of full-stack deployment
 
+### Why Ansible?
+
+Shortly:
+Agile configuration management tool with simple over-ssh client-less architecture. Good solution for quick RnD projects.
+Allows to rollout dev k8s cluster against instances boilerplate, made by terraform, that provides ability to automate
+testing application daemonset.
+
 ### Why Makefile?
 
 Shortly:
