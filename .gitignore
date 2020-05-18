@@ -9,3 +9,7 @@
 # .tfstate files
 *.tfstate
 *.tfstate.*
+
+# temp credentials
+*tf-ssh*
+*ansible-hosts*

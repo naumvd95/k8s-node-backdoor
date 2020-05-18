@@ -1,0 +1,18 @@
+---
+
+- hosts: k8s-boilerplate-masters
+  gather_facts: yes
+  become: yes
+  roles:
+    - { role: common }
+    - { role: cri/docker, tags: cri }
+    - { role: kubernetes/master, tags: master }
+    - { role: cni, tags: cni }
+
+- hosts: k8s-boilerplate-workers
+  gather_facts: yes
+  become: yes
+  roles:
+    - { role: common }
+    - { role: cri/docker, tags: cri }
+    - { role: kubernetes/worker, tags: worker }

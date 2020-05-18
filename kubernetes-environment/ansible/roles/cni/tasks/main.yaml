@@ -1,0 +1,16 @@
+---
+
+- name: Create k8s cni addon directory
+  file:
+    path: "{{ network_dir }}"
+    state: directory
+
+- name: "Copy Calico YAML files"
+  template:
+    src: calico.yaml.j2
+    dest: "{{ network_dir }}/calico.yaml"
+
+- name: "Create calico network daemonset"
+  command: kubectl apply --kubeconfig={{ kubeadmin_config }} -f {{ network_dir }}/
+  run_once: true
+  register: calico_applied
