@@ -9,6 +9,23 @@ Tooling for providing admin backdoor to k8s node. Should help k8s administrator 
 debugging, troubleshooting, monitoring operations in k8s cluster, which has not got
 Logging/Monitoring/Alerting configuration or its broken by some reason.
 
+### Environment
+
+1. K8s cluster and daemonset for testing purposes:
+
+Create:
+
+```bash
+make AWS_PROFILE=foo ansible-k8s
+```
+
+Delete:
+
+```bash
+make AWS_PROFILE=foo destroy-tf-boilerplate
+```
+
+2. Github workflow ci for building and testing application.
 
 ## Architecture
 
