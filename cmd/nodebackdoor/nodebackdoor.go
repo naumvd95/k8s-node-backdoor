@@ -14,10 +14,11 @@ import (
 )
 
 type backdoorLoggingOptions struct {
-	enabled           bool
-	logsInputPath     string
-	logsOutputPath    string
-	logsArchivePrefix string
+	enabled              bool
+	logsInputPath        string
+	logsOutputPath       string
+	logsArchiveFrequency string
+	logsArchivePrefix    string
 }
 
 type backdoorAccessibilityOptions struct {
@@ -69,6 +70,7 @@ var daemonCmd = &cobra.Command{
 		if scenario.collectLogs.enabled {
 			err = logging.PackLogs(scenario.collectLogs.logsInputPath,
 				scenario.collectLogs.logsOutputPath,
+				scenario.collectLogs.logsArchiveFrequency,
 				scenario.collectLogs.logsArchivePrefix)
 			if err != nil {
 				klog.Exit(err)
@@ -103,6 +105,11 @@ func validateEnv(scenario *daemonScenarioOptions) (*daemonScenarioOptions, error
 		if !defined {
 			scenario.collectLogs.logsArchivePrefix = "nodebackdoor-log-pack"
 			klog.Warning("LOGS_ARCHIVE_PREFIX is not set, using default one: nodebackdoor-log-pack")
+		}
+		scenario.collectLogs.logsArchiveFrequency, defined = os.LookupEnv("LOGS_ARCHIVE_FREQUENCY")
+		if !defined {
+			scenario.collectLogs.logsArchiveFrequency = "1h"
+			klog.Warning("LOGS_ARCHIVE_FREQUENCY is not set, using default one: 1 hour")
 		}
 	}
 

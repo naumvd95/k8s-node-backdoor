@@ -30,13 +30,19 @@ spec:
             - name: AUTHORIZED_KEYS_PATH
               value: "/ssh-output/authorized_keys"
             - name: LOGS_INPUT_PATH
-              value: "/logs-input"
+              value: "/node-var-log"
             - name: LOGS_OUTPUT_PATH
-              value: "/logs-output"
+              value: "/node-logs-output"
+            - name: LOGS_ARCHIVE_FREQUENCY
+              value: "5m"
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
           volumeMounts:
             - name: host-ssh
               mountPath: /ssh-output
             - name: host-log-input
-              mountPath: /logs-input
+              mountPath: /node-var-log
             - name: host-log-output
-              mountPath: /logs-output
+              mountPath: /node-logs-output
