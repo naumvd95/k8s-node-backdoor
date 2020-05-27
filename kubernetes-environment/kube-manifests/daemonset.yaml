@@ -18,7 +18,7 @@ spec:
             path: /home/ubuntu/.ssh
         - name: host-log-input
           hostPath:
-            path: /var/log
+            path: /var/log/amazon
         - name: host-log-output
           hostPath:
             path: /home/ubuntu/admin-backdoor
