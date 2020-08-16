@@ -6,7 +6,7 @@ bootstrapTokens:
   description: "kubeadm bootstrap token"
   ttl: "24h"
 localAPIEndpoint:
-  advertiseAddress: "{{ master_ip }}"
+  advertiseAddress: "{{ master_internal_ip }}"
 
 ---
 apiVersion: kubeadm.k8s.io/v1beta2
@@ -18,6 +18,9 @@ networking:
 apiServer:
   extraArgs:
     cloud-provider: "aws"
+  certSANs:
+  - "{{ master_internal_ip }}"
+  - "{{ master_public_ip }}"
 controllerManager:
   extraArgs:
     cloud-provider: "aws"

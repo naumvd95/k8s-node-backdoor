@@ -245,8 +245,8 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-    description = "k8s-apiserver"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "k8s-apiserver + kubeconfig accessibility"
   }
   ingress {
     from_port   = 2379
@@ -317,6 +317,7 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
 
 
 #--------- EC2 -----------
+# custom cloud init to override hostname w/ aws dns provided, needed for k8s aws cloud provider
 data "template_file" "hostname_override" {
   template = file("${path.module}/scripts/hostname-init.sh.tpl")
 }

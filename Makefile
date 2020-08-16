@@ -106,7 +106,9 @@ destroy-tf-boilerplate:
 	terraform destroy -var aws_profile=$(AWS_PROFILE) && \
 	cd -
 
+# sleep a little bit, due aws public ip initialization
 ansible-k8s: apply-tf-boilerplate
+	sleep 20
 	ansible-playbook kubernetes-environment/ansible/site.yaml \
 	-i kubernetes-environment/terraform-cluster-boilerplate/ansible-hosts.ini
 

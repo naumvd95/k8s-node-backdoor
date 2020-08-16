@@ -13,3 +13,6 @@
 # temp credentials
 *tf-ssh*
 *ansible-hosts*
+
+# kubeconfig for dev cluster
+*kubeconfig-public.yaml*

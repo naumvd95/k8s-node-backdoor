@@ -19,6 +19,11 @@ Create:
 make AWS_PROFILE=foo ansible-k8s
 ```
 
+Manage public kubeconfig file, stored in repository
+```bash
+kubectl --kubeconfig kubeconfig-public.yaml get nodes
+```
+
 Delete:
 
 ```bash

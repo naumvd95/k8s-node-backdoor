@@ -9,7 +9,7 @@
   shell: |
     kubeadm join --token {{ kubeadm_token }} \
                 --discovery-token-unsafe-skip-ca-verification \
-                {{ master_ip }}:6443
+                {{ master_internal_ip }}:6443
   register: join_cluster
   notify:
     - recreate kube-dns

@@ -41,3 +41,27 @@
     state: started
     enabled: yes
   register: started_kubelet
+
+- name: "Prepare user kubeconfig file"
+  copy:
+    src: /etc/kubernetes/admin.conf
+    remote_src: yes
+    dest: /etc/kubernetes/kubeconfig-public.yaml
+    owner: "{{ ansible_user | default(ansible_user_id) }}"
+    group: "{{ ansible_user | default(ansible_user_id) }}"
+    mode: 0644
+
+- name: "Replace internal ip with public one for kubeconfig"
+  replace:
+    path: /etc/kubernetes/kubeconfig-public.yaml
+    regexp: "{{ master_internal_ip  }}"
+    replace: "{{ master_public_ip  }}"
+    backup: yes
+
+- name: "Download user kubeconfig file"
+  fetch:
+    src: /etc/kubernetes/kubeconfig-public.yaml
+    dest: "{{ public_kubeconfig_path }}"
+    flat: yes
+  run_once: yes
+  ignore_errors: yes
