@@ -4,12 +4,20 @@
   shell: "kubeadm reset --force"
   register: reset_cluster
 
+- name: Create kubeadm config directory
+  file:
+    path: "{{ kubeadm_dir }}"
+    state: directory
+
+- name: "Copy kubeadm config"
+  template:
+    src: kubeadm-worker.yaml.j2
+    dest: "{{ kubeadm_dir }}/kubeadm-worker.yaml"
+
 - name: Join to Kubernetes cluster
   when: reset_cluster is succeeded
   shell: |
-    kubeadm join --token {{ kubeadm_token }} \
-                --discovery-token-unsafe-skip-ca-verification \
-                {{ master_internal_ip }}:6443
+    kubeadm join  --config {{ kubeadm_dir }}/kubeadm-worker.yaml
   register: join_cluster
   notify:
     - recreate kube-dns

@@ -7,8 +7,8 @@
 
 - name: "Copy kubeadm config"
   template:
-    src: kubeadm.yaml.j2
-    dest: "{{ kubeadm_dir }}/kubeadm.yaml"
+    src: kubeadm-master.yaml.j2
+    dest: "{{ kubeadm_dir }}/kubeadm-master.yaml"
 
 - name: reset kubeadm
   shell: "kubeadm reset --force"
@@ -16,7 +16,7 @@
 
 - name: Init Kubernetes cluster
   when: reset_cluster is succeeded
-  shell: kubeadm init --config {{ kubeadm_dir }}//kubeadm.yaml
+  shell: kubeadm init --config {{ kubeadm_dir }}/kubeadm-master.yaml
   register: init_cluster
 
 - name: Create Kubernetes config directory

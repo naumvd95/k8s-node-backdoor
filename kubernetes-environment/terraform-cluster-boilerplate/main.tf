@@ -73,6 +73,7 @@ data "aws_iam_policy_document" "master-iam-policy-doc" {
       "elasticloadbalancing:ModifyListener",
       "elasticloadbalancing:ModifyTargetGroup",
       "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:DeregisterTargets",
       "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
       "iam:CreateServiceLinkedRole",
       "kms:DescribeKey",
@@ -213,26 +214,26 @@ resource "aws_route_table_association" "vn-k8s-backdoor-rta" {
 }
 
 # Security Groups
-resource "aws_security_group" "vn-k8s-backdoor-sg-ssh" {
-  vpc_id      = aws_vpc.vn-k8s-backdoor-vpc.id
-  name        = "vn-k8s-backdoor-sg-ssh"
-  description = "SG for ssh access"
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = local.common_tags
-}
 
 resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
   vpc_id      = aws_vpc.vn-k8s-backdoor-vpc.id
   name        = "vn-k8s-backdoor-sg-common"
   description = "SG for k8s cluster nodes, allow all k8s used ports for master/workers"
 
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "ssh access"
+  }
   ingress {
     # port means icmp types for icmp protocol
     from_port   = 8
@@ -247,6 +248,13 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "k8s-apiserver + kubeconfig accessibility"
+  }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "k8s-apiserver additional"
   }
   ingress {
     from_port   = 2379
@@ -305,13 +313,6 @@ resource "aws_security_group" "vn-k8s-backdoor-sg-common" {
     description = "Calico BGP"
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = local.common_tags
 }
 
@@ -348,7 +349,7 @@ resource "aws_instance" "vn-k8s-backdoor-master" {
   user_data_base64 = data.template_cloudinit_config.vn-k8s-cloudinit.rendered
 
   key_name               = aws_key_pair.vn-k8s-backdoor-key-pair.id
-  vpc_security_group_ids = [aws_security_group.vn-k8s-backdoor-sg-ssh.id, aws_security_group.vn-k8s-backdoor-sg-common.id]
+  vpc_security_group_ids = [aws_security_group.vn-k8s-backdoor-sg-common.id]
   iam_instance_profile   = aws_iam_instance_profile.vn-k8s-backdoor-iam-master-profile.id
   subnet_id              = aws_subnet.vn-k8s-backdoor-subnet.id
 
@@ -368,7 +369,7 @@ resource "aws_instance" "vn-k8s-backdoor-worker" {
   count            = 2
 
   key_name               = aws_key_pair.vn-k8s-backdoor-key-pair.id
-  vpc_security_group_ids = [aws_security_group.vn-k8s-backdoor-sg-ssh.id, aws_security_group.vn-k8s-backdoor-sg-common.id]
+  vpc_security_group_ids = [aws_security_group.vn-k8s-backdoor-sg-common.id]
   iam_instance_profile   = aws_iam_instance_profile.vn-k8s-backdoor-iam-worker-profile.id
   subnet_id              = aws_subnet.vn-k8s-backdoor-subnet.id
 

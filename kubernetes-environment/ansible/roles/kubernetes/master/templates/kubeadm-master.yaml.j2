@@ -1,0 +1,26 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: InitConfiguration
+bootstrapTokens:
+- token: "{{ kubeadm_token }}"
+  description: "kubeadm bootstrap token"
+  ttl: "24h"
+localAPIEndpoint:
+  advertiseAddress: "{{ master_internal_ip }}"
+
+---
+apiVersion: kubeadm.k8s.io/v1beta2
+kind: ClusterConfiguration
+clusterName: {{ cluster_name }}
+networking:
+  serviceSubnet: "{{ service_cidr }}"
+  podSubnet: "{{ pod_network_cidr }}"
+apiServer:
+  extraArgs:
+    cloud-provider: "aws"
+  certSANs:
+  - "{{ master_internal_ip }}"
+  - "{{ master_public_ip }}"
+controllerManager:
+  extraArgs:
+    cloud-provider: "aws"
